@@ -3,7 +3,7 @@ CFLAGS = -g -std=c99 -Wno-unused-result -pipe -O3
 
 all:  main
 
-main: main.o data.o key.o 
+main: main.o table.o 
 	$(CC) $^ -o $@
 
 .c.o:
