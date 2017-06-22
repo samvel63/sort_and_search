@@ -33,8 +33,19 @@ int line_read(Line *line, FILE *f)
 void table_load(Table table, FILE *f)
 {
 	Line line;
-	while (line_read(&line, f))
+	while (line_read(&line, f)) {
+		//if (table->size % 10000 == 0)
+		//	printf("%d\n", table->size);
 		line_add(table, &line);
+	}
+}
+
+void table_save(Table table, FILE *f)
+{
+	for (int i = 0; i < table->size; ++i) {
+	    fwrite(table->rows[i].key,  sizeof(char), KEY_SIZE, f);
+		fwrite(table->rows[i].data, sizeof(char), DATA_SIZE, f);
+	}
 }
 
 void line_add(Table table, Line *line)
@@ -56,6 +67,8 @@ void sort(Table res)
 	int n = res->size;
     Line line;
     for (int i = n - 1; i >= 0; --i) {
+    	if (i % 100 == 0)
+    		printf("%d\n", i);
         for (int j = 0; j < i; ++j) {
             if (line_cmp(&res->rows[j], &res->rows[j + 1]) == 1) {
                 line_copy(&line, &res->rows[j]);
@@ -83,56 +96,54 @@ void test(Table table)
 	printf("%s\n\n", table->rows[0].key);
 }
 
-void tournament_sort(Table res)
+void sift(Table t, int left, int right)
 {
-    int n = res->size;
-    int size;
-    int idx;
-    for (int i = 1; ; i *= 2) {
-        if (i >= n) {
-            size = i;
-            break;
-        }
+    int node_idx = left;
+    int bigger_child_idx = 2 * left + 1;
+    Line tmp_value;
+    Line root_value;
+    line_copy(&root_value, &t->rows[left]);
+
+    if (bigger_child_idx < right
+        && (line_cmp(&t->rows[bigger_child_idx], &t->rows[bigger_child_idx + 1]) == -1))
+        ++bigger_child_idx;
+
+    while (bigger_child_idx <= right
+        && (line_cmp(&root_value, &t->rows[bigger_child_idx]) == -1)) {
+        line_copy(&tmp_value, &t->rows[node_idx]);
+        line_copy(&t->rows[node_idx], &t->rows[bigger_child_idx]);
+        line_copy(&t->rows[bigger_child_idx], &tmp_value);
+        node_idx = bigger_child_idx;
+        bigger_child_idx = bigger_child_idx * 2 + 1;
+        if (bigger_child_idx < right
+            && (line_cmp(&t->rows[bigger_child_idx], &t->rows[bigger_child_idx + 1]) == -1))
+            ++bigger_child_idx;
     }
+    return;
+}
 
-    Table tree = table_create(2 * size - 1);
 
-    for (int i = 0; i < n; ++i)
-        line_copy(&tree->rows[i + size - 1], &res->rows[i]);
+void heap_sort(Table t)
+{
+    int n = t->size;
 
-    for (int i = size - 2; i >= 0; --i) {
-        if (strcmp(tree->rows[2 * i + 1].key, tree->rows[2 * i + 2].key) == -1)
-            line_copy(&tree->rows[i], &tree->rows[2 * i + 1]);
-        else
-            line_copy(&tree->rows[i], &tree->rows[2 * i + 2]);
+    int left, right;
+    Line tmp_value;
+
+    left = n / 2 + 1;
+    while (left) {
+        --left;
+        sift(t, left, n - 1);
     }
-
-    for (int i = 0; i < n; ++i) {
-        idx = 0;
-        line_copy(&res->rows[i], &tree->rows[idx]);
-        memset(tree->rows[idx].key, '\0', 6);
-
-        while ( idx < size - 1) {
-            if (!strcmp(tree->rows[idx * 2 + 1].key, res->rows[i].key)) {
-                memset(tree->rows[idx * 2 + 1].key, '\0', 6);
-                idx = idx * 2 + 1;
-            } else {
-                memset(tree->rows[idx * 2 + 2].key, '\0', 6);
-                idx = idx * 2 + 2;
-            }
-        }
-
-        while (idx) {
-            idx -= 1;
-            idx /= 2;
-            if (strcmp(tree->rows[2 * idx + 1].key, tree->rows[2 * idx + 2].key) == -1)
-                line_copy(&tree->rows[idx], &tree->rows[2 * idx + 1]);
-            else
-                line_copy(&tree->rows[idx], &tree->rows[2 * idx + 2]);
-        }
+    right = n - 1;
+    while (right) {
+        line_copy(&tmp_value, &t->rows[0]);
+        line_copy(&t->rows[0], &t->rows[right]);
+        line_copy(&t->rows[right], &tmp_value);
+        --right;
+        sift(t, 0, right);
     }
-
-    table_destroy(&tree);
+    printf("отсортирована\n\n");
 }
 
 void table_reverse(Table table)

@@ -46,7 +46,7 @@ int main(int arc, char **argv)
 			scanf("%6s", key);
 			table_binary_search(table, key);
 		} else if (!strcmp(s, "4")) {
-			sort(table);
+			heap_sort(table);
 		} else if (!strcmp(s, "5")) {
  			table_shuffle(table);
 		} else if (!strcmp(s, "6")) {
